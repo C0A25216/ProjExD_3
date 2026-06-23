@@ -161,6 +161,31 @@ class Score:
         self.img = self.font.render(f"Score: {self.score}", 0, self.color)
         screen.blit(self.img, self.rct)
 
+# 【応用3】Explosionクラスの定義
+class Explosion:
+    def __init__(self, obj: Bomb):
+        """
+        爆発エフェクトのSurfaceを生成し、対応するRectを返す
+        引数 obj：爆発した爆弾（Bombインスタンス）
+        """
+        img = pg.image.load("fig/explosion.gif")
+        self.imgs = [
+            img,
+            pg.transform.flip(img, True, False),
+            pg.transform.flip(img, False, True),
+            pg.transform.flip(img, True, True)
+        ]
+        self.rct = img.get_rect()
+        self.rct.center = obj.rct.center
+        self.life = 20
+    def update(self, screen: pg.Surface):
+        """
+        爆発の表示時間を減らし，反転画像を交互に画面に転送する
+        引数:screen Surface
+        """
+        self.life -= 1
+        screen.blit(self.imgs[self.life // 5 % 4], self.rct)
+
 def main():
     pg.display.set_caption("たたかえ！こうかとん")
     screen = pg.display.set_mode((WIDTH, HEIGHT))    
@@ -170,7 +195,8 @@ def main():
     bombs = [Bomb((255, 0, 0), 10) for _ in range(NUM_OF_BOMBS)]
     # beam = None  # ゲーム初期化時にはビームは存在しない
     score = Score()
-    beams = []#応用2
+    beams = []#応用2空白リスト
+    explosions = []#応用3空白リスト
     clock = pg.time.Clock()
     tmr = 0
     while True:
@@ -186,6 +212,7 @@ def main():
             for i, bomb in enumerate(bombs):
                 if beam is not None and bomb is not None:
                     if beam.rct.colliderect(bomb.rct):
+                        explosions.append(Explosion(bomb))# 応用3-爆発
                         bird.change_img(6, screen)
                         pg.display.update()
                         score.score += 1 # 応用1スコア加算
@@ -195,7 +222,8 @@ def main():
 
         bombs = [bomb for bomb in bombs if bomb is not None]
         beams = [beam for beam in beams if beam is not None and check_bound(beam.rct)[0]]#応用2
-        
+        explosions = [ex for ex in explosions if ex.life > 0]#応用3
+
         for bomb in bombs:
             if bird.rct.colliderect(bomb.rct):
                 # ゲームオーバー時に，こうかとん画像を切り替え，1秒間表示させる
@@ -216,6 +244,9 @@ def main():
             bomb.update(screen)
         # 応用1スコアの更新と描画
         score.update(screen)
+        #応用3
+        for ex in explosions:
+            ex.update(screen)
         pg.display.update()
         tmr += 1
         clock.tick(50)
