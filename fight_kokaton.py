@@ -2,6 +2,7 @@ import os
 import random
 import sys
 import time
+import math
 import pygame as pg
 
 
@@ -56,6 +57,7 @@ class Bird:
         self.img = __class__.imgs[(+5, 0)]
         self.rct: pg.Rect = self.img.get_rect()
         self.rct.center = xy
+        self.dire = (+5, 0)# 応用4初期値
 
     def change_img(self, num: int, screen: pg.Surface):
         """
@@ -82,6 +84,7 @@ class Bird:
             self.rct.move_ip(-sum_mv[0], -sum_mv[1])
         if not (sum_mv[0] == 0 and sum_mv[1] == 0):
             self.img = __class__.imgs[tuple(sum_mv)]
+            self.dire = tuple(sum_mv) # 応用4移動方向に合わせて向きを更新
         screen.blit(self.img, self.rct)
 
 
@@ -94,12 +97,18 @@ class Beam:
         ビーム画像Surfaceを生成する
         引数 bird：ビームを放つこうかとん（Birdインスタンス）
         """
-        self.img = pg.image.load(f"fig/beam.png")
-        self.rct = self.img.get_rect()
-        self.rct.centery = bird.rct.centery
-        self.rct.centerx = bird.rct.centerx
 
-        self.vx, self.vy = +5, 0
+        # 【応用4】こうかとんの向きに合わせてビームの速度を設定
+        self.vx, self.vy = bird.dire
+        # 【応用4】向きから回転角度を計算（math.atan2はy, xの順）
+        angle = math.degrees(math.atan2(-self.vy, self.vx))
+        self.img = pg.transform.rotozoom(pg.image.load(f"fig/beam.png"), angle, 1.0)
+        self.rct = self.img.get_rect()
+        # 【応用4】ビームの初期位置をこうかとんの向きに合わせて調整
+        self.rct.centery = bird.rct.centery + bird.rct.height * self.vy / 5
+        self.rct.centerx = bird.rct.centerx + bird.rct.width * self.vx / 5
+
+
         
     def update(self, screen: pg.Surface):
         """
@@ -242,8 +251,10 @@ def main():
             beam.update(screen) 
         for bomb in bombs: 
             bomb.update(screen)
+            
         # 応用1スコアの更新と描画
         score.update(screen)
+
         #応用3
         for ex in explosions:
             ex.update(screen)
